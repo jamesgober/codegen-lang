@@ -14,7 +14,7 @@
 </div>
 <br>
 
-> **Status: pre-1.0.** The public surface is being designed across the 0.x series and frozen at `1.0.0`. Until then it may change between minor versions. See [`dev/ROADMAP.md`](../dev/ROADMAP.md).
+> **Status: stable (1.0).** The surface below is the `1.0` contract: it follows [Semantic Versioning](#semver-promise) and will not change in a breaking way before `2.0`. See [`dev/ROADMAP.md`](../dev/ROADMAP.md).
 
 A backend abstraction that lowers the [`ir-lang`](https://docs.rs/ir-lang) intermediate representation to a concrete target. The shipped target is a small, register-based bytecode.
 
@@ -36,7 +36,7 @@ A backend abstraction that lowers the [`ir-lang`](https://docs.rs/ir-lang) inter
   - [`CodegenError`](#codegenerror)
   - [`BinOp` & `UnOp` (re-exports)](#binop--unop)
 - [Feature flags](#feature-flags)
-- [SemVer](#semver)
+- [SemVer promise](#semver-promise)
 
 <br>
 <hr>
@@ -46,7 +46,7 @@ A backend abstraction that lowers the [`ir-lang`](https://docs.rs/ir-lang) inter
 
 ```toml
 [dependencies]
-codegen-lang = "0.2"
+codegen-lang = "1"
 ir-lang = "1"
 ```
 
@@ -506,9 +506,16 @@ Both features forward to the matching `ir-lang` feature, so a serialized program
 
 <br>
 
-## SemVer
+## SemVer promise
 
-This crate is **pre-1.0**. The public surface above may change between minor (`0.x`) versions while it is being designed; it will be frozen and given a SemVer stability promise at `1.0.0`. Pin a `0.2` range and consult the [`CHANGELOG`](../CHANGELOG.md) when upgrading.
+As of `1.0.0` the public surface above is frozen. The crate follows [Semantic Versioning](https://semver.org):
+
+- No documented item is removed or changed in a breaking way within `1.x`; breaking changes wait for `2.0`.
+- New functionality is additive and arrives in minor releases. [`CodegenError`](#codegenerror) is `#[non_exhaustive]`, so a new failure variant is a minor change, not a breaking one; a `match` on it must keep a wildcard arm. A new [`Backend`](#backend) implementation, with its own `Output`, is likewise additive.
+- The MSRV is Rust `1.85`; raising it is a minor change, never a patch.
+- Behaviour is part of the contract: a function that compiles today keeps compiling, and the disassembly `Display` form is stable for a given program.
+
+This file is updated in lockstep with every release so it always matches the code.
 
 <br>
 <hr>

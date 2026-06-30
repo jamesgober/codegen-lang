@@ -26,7 +26,7 @@
         <strong>MSRV is 1.85+</strong> (Rust 2024 edition).
     </p>
     <blockquote>
-        <strong>Status: pre-1.0, in active development.</strong> The public API is being designed across the 0.x series and frozen at <code>1.0.0</code>. See <a href="./CHANGELOG.md"><code>CHANGELOG.md</code></a>.
+        <strong>Status: stable.</strong> The public API is frozen as of <code>1.0.0</code> and follows Semantic Versioning, with no breaking changes before <code>2.0</code>. See <a href="./docs/API.md#semver-promise"><code>docs/API.md</code></a> for the SemVer promise and <a href="./CHANGELOG.md"><code>CHANGELOG.md</code></a>.
     </blockquote>
 </div>
 
@@ -49,7 +49,7 @@ The input is an [`ir_lang::Function`](https://docs.rs/ir-lang). Each IR value is
 
 ```toml
 [dependencies]
-codegen-lang = "0.2"
+codegen-lang = "1"
 ir-lang = "1"
 ```
 
@@ -210,10 +210,24 @@ Numbers vary by CPU and environment; run the benches on your hardware for trends
 
 ```toml
 # no_std build:
-codegen-lang = { version = "0.2", default-features = false }
+codegen-lang = { version = "1", default-features = false }
 
 # with serialization:
-codegen-lang = { version = "0.2", features = ["serde"] }
+codegen-lang = { version = "1", features = ["serde"] }
+```
+
+<br>
+
+## Examples
+
+Two runnable examples live in [`examples/`](./examples):
+
+```bash
+# Lower double / abs / a loop and print each one's disassembly.
+cargo run --example disassemble
+
+# Compile a function, walk its op stream, and see a malformed function rejected.
+cargo run --example inspect
 ```
 
 <br>

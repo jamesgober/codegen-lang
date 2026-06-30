@@ -21,6 +21,22 @@
 
 ---
 
+## [1.0.0] - 2026-06-30
+
+API freeze. The public surface built in 0.2.0 is ratified as the `1.0` contract: it follows Semantic Versioning and carries no breaking changes before `2.0`. There is no breaking change from `0.2.0` — a `0.2.0` program compiles and behaves identically. The freeze adds only what hardens the release: runnable examples, serialization round-trip coverage, and the stability documentation.
+
+### Added
+
+- `examples/disassemble.rs` — lowers `double`, `abs`, and a loop and prints each one's disassembly.
+- `examples/inspect.rs` — walks a compiled program's op stream and shows the error path on invalid IR.
+- `serde` round-trip tests for `Program` and `CodegenError` (`tests/serde.rs`).
+
+### Changed
+
+- Marked the public API stable and frozen as of `1.0.0`; recorded the SemVer promise in [`docs/API.md`](docs/API.md#semver-promise) and the crate root.
+
+---
+
 ## [0.2.0] - 2026-06-30
 
 The core milestone: the backend abstraction and the bytecode reference backend land. This is the first release with domain logic — it lowers an `ir-lang` function in SSA form to a flat, register-based bytecode program. The public surface is documented in [`docs/API.md`](docs/API.md) and remains pre-1.0 (subject to change until the `1.0.0` freeze).
@@ -64,6 +80,7 @@ Initial scaffold and repository bootstrap. No domain logic yet &mdash; this rele
 - `.github/workflows/ci.yml` CI matrix; `deny.toml`, `clippy.toml`, `rustfmt.toml`.
 - `dev/ROADMAP.md` (committed plan).
 
-[Unreleased]: https://github.com/jamesgober/codegen-lang/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/jamesgober/codegen-lang/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/jamesgober/codegen-lang/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/jamesgober/codegen-lang/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jamesgober/codegen-lang/releases/tag/v0.1.0

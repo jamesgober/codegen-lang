@@ -9,14 +9,14 @@
 Compiles, CI green, structure correct, no domain logic.
 - [x] Manifest, README, CHANGELOG, REPS, dual license, CI, deny, clippy, rustfmt.
 
-## v0.2.0 - Core (THE HARD PART, NOT DEFERRED)
-A backend abstraction that lowers IR to LLVM, Cranelift, or bytecode targets.
-Dependencies (wires ir) are wired here, when first used.
+## v0.2.0 - Core (DONE)
+A backend abstraction (`Backend` trait) that lowers IR to a target; the shipped target
+is a register-based bytecode. `ir-lang` is wired here as the IR the backend reads.
 Exit criteria:
-- [ ] Every public item has rustdoc + a runnable example.
-- [ ] Core invariants property-tested (full DIRECTIVES + API authored at this stage).
+- [x] Every public item has rustdoc + a runnable example.
+- [x] Core invariants property-tested (full DIRECTIVES + API authored at this stage).
 
-## v1.0.0 - API freeze
+## v1.0.0 - API freeze (DONE)
 Public surface stable and frozen until 2.0.
-- [ ] docs/API.md marked stable; SemVer promise recorded.
-- [ ] Full test + benchmark suite green on all three platforms.
+- [x] docs/API.md marked stable; SemVer promise recorded.
+- [x] Full test + benchmark suite green on all three platforms.
