@@ -21,6 +21,36 @@
 
 ---
 
+## [0.2.0] - 2026-06-30
+
+The core milestone: the backend abstraction and the bytecode reference backend land. This is the first release with domain logic — it lowers an `ir-lang` function in SSA form to a flat, register-based bytecode program. The public surface is documented in [`docs/API.md`](docs/API.md) and remains pre-1.0 (subject to change until the `1.0.0` freeze).
+
+### Added
+
+- `Backend` trait — the code-generation abstraction: lowers an `ir_lang::Function` to a backend-defined `Output`, so LLVM or Cranelift targets can be added behind the same interface.
+- `Bytecode` — the reference backend: validates a function, then lowers each block to a linear op stream.
+- `compile` — shortcut for lowering with the default `Bytecode` backend.
+- `Program` — the lowered function: name, parameter registers, register count, op stream, label resolution, and a disassembly `Display`.
+- `Op` — the closed bytecode instruction set (`Const`, `Bin`, `Un`, `Move`, `Jump`, `JumpUnless`, `Return`).
+- `Reg`, `Label`, `Const` — registers, jump targets, and constant operands, each with a `Display`.
+- `CodegenError` — the failure reason; `InvalidIr` wraps the `ir-lang` validation error, with `Display`, `Error`, and `From` impls.
+- Re-exports of `ir_lang::BinOp` and `ir_lang::UnOp` so the operations carried by `Op` can be matched without depending on `ir-lang` directly.
+- `serde` derives for the program types behind the `serde` feature.
+- Integration tests covering the full codegen workflow (`double`, `abs`, `max`, a countdown loop) through a reference interpreter, invalid-input rejection tests, and property tests checking codegen against an independent evaluation.
+- Criterion benchmarks for straight-line, branching, and looping functions.
+- Full rustdoc with runnable examples on every public item; `docs/API.md` API reference.
+
+### Changed
+
+- Wired the `ir-lang` dependency (`ir-lang = "1"`), the IR this backend lowers, with `std` and `serde` forwarded through the crate's own features.
+
+### Fixed
+
+- Corrected the unparseable `keywords` and `categories` arrays in `Cargo.toml` that prevented the crate from building.
+- Aligned `clippy.toml`'s `msrv` with the crate's declared `rust-version` (`1.85`).
+
+---
+
 ## [0.1.0] - 2026-06-18
 
 Initial scaffold and repository bootstrap. No domain logic yet &mdash; this release establishes the structure, tooling, and quality gates the implementation will be built on.
@@ -32,7 +62,8 @@ Initial scaffold and repository bootstrap. No domain logic yet &mdash; this rele
 - `README.md`, `CHANGELOG.md`, and a documentation skeleton.
 - `REPS.md` compliance baseline.
 - `.github/workflows/ci.yml` CI matrix; `deny.toml`, `clippy.toml`, `rustfmt.toml`.
-- `dev/DIRECTIVES.md` and `dev/ROADMAP.md` (committed engineering standards + plan).
+- `dev/ROADMAP.md` (committed plan).
 
-[Unreleased]: https://github.com/jamesgober/codegen-lang/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/jamesgober/codegen-lang/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/jamesgober/codegen-lang/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jamesgober/codegen-lang/releases/tag/v0.1.0

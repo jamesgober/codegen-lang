@@ -3,7 +3,7 @@
 # =============================================================================
 [package]
 name    = "codegen-lang"
-version = "0.1.0"
+version = "0.2.0"
 
 # Minimum Supported Rust Version (MSRV)
 rust-version = "1.85"
@@ -19,10 +19,10 @@ readme = "README.md"
 description = "Backend abstraction targeting LLVM, Cranelift, or bytecode."
 
 # Keywords (5 max)
-keywords = [compiler,language,codegen,backend]
+keywords = ["compiler", "language", "codegen", "backend", "ir"]
 
 # Categories
-categories = [development-tools,compilers]
+categories = ["development-tools", "compilers"]
 
 # Links
 homepage      = "https://github.com/jamesgober/codegen-lang"
@@ -45,14 +45,18 @@ path = "src/lib.rs"
 # #################################
 [features]
 default = ["std"]
-std = []
-# Serialization support.
-serde = ["dep:serde"]
+# The standard library. Without it the crate is `#![no_std]` and needs only `alloc`.
+std = ["ir-lang/std"]
+# Serialization support for the emitted program and its instructions.
+serde = ["dep:serde", "ir-lang/serde"]
 
 
 # DEPENDENCIES
 # #################################
 [dependencies]
+# The intermediate representation this backend lowers. `Function` is the input to
+# every `Backend`; its frozen 1.0 surface is what codegen reads and traverses.
+ir-lang = { version = "1", default-features = false }
 serde = { version = "1", optional = true, default-features = false, features = ["derive", "alloc"] }
 
 
