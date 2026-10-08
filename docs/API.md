@@ -64,10 +64,10 @@ The crate is `#![no_std]`-capable: build with `default-features = false` to drop
 
 A backend reads an [`ir_lang::Function`](https://docs.rs/ir-lang) — a control-flow graph of basic blocks in SSA form — and lays it out as a linear program. The bytecode backend's mapping:
 
-- **Each value** the function defines (an instruction result or a block parameter) is held in its own virtual [`Reg`](#reg)ister, numbered by the value's index. The total is [`Program::register_count`](#program).
+- **Each value** the function defines (an instruction result or a block parameter) is held in its own virtual [`Reg`](#reg)ister, numbered by the value's index. The total is [`Program::register_count`](#program) — plus one scratch register, numbered just past the values, when some edge's argument copies form a cycle.
 - **Each instruction** becomes one [`Op`](#op) writing its result register.
 - **Each basic block** becomes a [`Label`](#label) at the op where the block begins. The entry block is always `L0`, the first op.
-- **A block argument** on a control-flow edge becomes a `move` into the target block's parameter register, emitted on the edge — the stand-in for an SSA phi.
+- **A block argument** on a control-flow edge becomes a `move` into the target block's parameter register, emitted on the edge — the stand-in for an SSA phi. An edge's arguments are one *parallel* copy whose sources and destinations may overlap (a loop back edge passing its header's own parameters, permuted or duplicated), so the moves are ordered so that none overwrites a register a later one still reads, and each cycle is broken with one extra move through the scratch register. Self-copies are skipped; the count is minimal (a cycle of length `k` costs `k + 1` moves). Before `1.0.1` the copies were emitted in argument order, which miscompiled such back edges.
 - **A two-way branch** becomes a [`JumpUnless`](#op) plus two exclusive arms, so the argument moves of the arm not taken never run.
 
 The function is checked with [`Function::validate`](https://docs.rs/ir-lang) before lowering, so the emitted program is faithful to well-formed SSA and a malformed function is rejected with a [`CodegenError`](#codegenerror) rather than miscompiled.
@@ -243,7 +243,7 @@ The `Display` implementation renders the program as a readable disassembly.
 |---|---|---|
 | `name()` | `&str` | The function's name. |
 | `params()` | `&[Reg]` | The registers holding the parameters, in declaration order. An interpreter writes the call arguments into these before running. |
-| `register_count()` | `u32` | The number of registers; valid register numbers are `0..register_count`. |
+| `register_count()` | `u32` | The number of registers; valid register numbers are `0..register_count`. For a lowered program: the function's value count, plus one if the scratch register was needed. |
 | `ops()` | `&[Op]` | The ops, in execution order. |
 | `len()` | `usize` | The number of ops. |
 | `is_empty()` | `bool` | Whether there are no ops. A program lowered from a valid function is never empty. |
@@ -326,7 +326,7 @@ One bytecode instruction; the closed set a [`Program`](#program)'s op stream is 
 | `Const { dst, value }` | Load a [constant](#const) into `dst`. |
 | `Bin { op, dst, lhs, rhs }` | `dst = lhs <op> rhs`, reusing the IR's `BinOp`. |
 | `Un { op, dst, src }` | `dst = <op> src`, reusing the IR's `UnOp`. |
-| `Move { dst, src }` | `dst = src`. Emitted on a control-flow edge to pass a block argument into a parameter register. |
+| `Move { dst, src }` | `dst = src`. Emitted on a control-flow edge to pass a block argument into a parameter register, ordered as a parallel copy (a cycle goes through the scratch register). |
 | `Jump { target }` | Jump unconditionally to `target`. |
 | `JumpUnless { cond, target }` | Jump to `target` when `cond` is `false`; otherwise fall through. |
 | `Return { value }` | Return, optionally yielding the value in a register. |
@@ -371,7 +371,7 @@ assert_eq!(load.to_string(), "r0 = const 1");
 pub struct Reg(pub u32);
 ```
 
-A virtual register: a numbered slot that holds one value while a program runs. Registers are dense from zero; [`Program::register_count`](#program) is one past the highest in use. Displays as `r{n}`.
+A virtual register: a numbered slot that holds one value while a program runs. Each IR value has its own register; a program whose edges needed to break a copy cycle also uses one scratch register just past them. Registers are dense from zero; [`Program::register_count`](#program) is one past the highest in use. Displays as `r{n}`.
 
 **Examples**
 

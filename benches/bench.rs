@@ -2,8 +2,9 @@
 //!
 //! Each benchmark builds an IR function once, then measures only the lowering — the work
 //! [`codegen_lang::compile`] does per call — so the numbers track the backend, not the
-//! builder. Three shapes cover the cost drivers: a flat run of instructions, a wide fan
-//! of two-way branches, and a loop with block-parameter edges.
+//! builder. Four shapes cover the cost drivers: a flat run of instructions, a wide fan
+//! of two-way branches, a loop with block-parameter edges, and a loop whose back edge
+//! permutes its parameters (one long cycle of conflicting copies).
 
 use codegen_lang::compile;
 use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
@@ -74,6 +75,28 @@ fn loop_sum() -> Function {
     b.finish()
 }
 
+/// A loop header with `n` parameters whose back edge rotates them all by one: a single
+/// `n`-cycle of block-argument copies, the worst case for parallel-move scheduling (every
+/// copy conflicts, and the cycle needs the scratch register).
+fn rotating_loop(n: u32) -> Function {
+    let mut params = vec![Type::Int; n as usize];
+    params.push(Type::Bool);
+    let mut b = Builder::new("rotate", &params, Type::Int);
+    let entry = b.block_params(b.entry()).to_vec();
+    let (data, more) = entry.split_at(n as usize);
+    let header = b.create_block(&vec![Type::Int; n as usize]);
+    let exit = b.create_block(&[]);
+    b.jump(header, data);
+    b.switch_to(header);
+    let hp = b.block_params(header).to_vec();
+    let mut rotated = hp[1..].to_vec();
+    rotated.push(hp[0]);
+    b.branch(more[0], header, &rotated, exit, &[]);
+    b.switch_to(exit);
+    b.ret(Some(hp[0]));
+    b.finish()
+}
+
 fn bench_compile(c: &mut Criterion) {
     let mut group = c.benchmark_group("compile");
 
@@ -89,6 +112,14 @@ fn bench_compile(c: &mut Criterion) {
         let func = branch_chain(n);
         group.throughput(Throughput::Elements(u64::from(n)));
         group.bench_with_input(BenchmarkId::new("branch_chain", n), &func, |bencher, f| {
+            bencher.iter(|| compile(std::hint::black_box(f)));
+        });
+    }
+
+    for &n in &[16u32, 1024, 131_072] {
+        let func = rotating_loop(n);
+        group.throughput(Throughput::Elements(u64::from(n)));
+        group.bench_with_input(BenchmarkId::new("rotating_loop", n), &func, |bencher, f| {
             bencher.iter(|| compile(std::hint::black_box(f)));
         });
     }

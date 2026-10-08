@@ -9,10 +9,13 @@
     dead_code,
     clippy::unwrap_used,
     clippy::panic,
+    clippy::expect_used,
     reason = "test-support code: each test crate uses a subset, and a bad value should fail loudly"
 )]
 
 use codegen_lang::{BinOp, Const, Op, Program, Reg, UnOp};
+
+pub mod ir;
 
 /// A runtime value flowing through the registers as a program runs.
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -56,11 +59,22 @@ impl Value {
 /// worth surfacing in a test.
 #[must_use]
 pub fn run(program: &Program, args: &[Value]) -> Value {
+    run_bounded(program, args, usize::MAX)
+}
+
+/// [`run`], but executing at most `fuel` ops: a miscompiled loop that never exits fails
+/// the test with a panic instead of hanging it.
+#[must_use]
+pub fn run_bounded(program: &Program, args: &[Value], fuel: usize) -> Value {
     let mut regs = alloc_registers(program, args);
     let ops = program.ops();
     let mut pc = program.label_offset(program.entry()).unwrap();
+    let mut remaining = fuel;
 
     loop {
+        remaining = remaining
+            .checked_sub(1)
+            .unwrap_or_else(|| panic!("the program ran out of fuel ({fuel} ops)"));
         let op = ops[pc];
         match op {
             Op::Const { dst, value } => {

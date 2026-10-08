@@ -104,7 +104,9 @@ The bytecode is register-based rather than stack-based. The pieces map onto the 
 | A block argument on an edge | A `move` into the target block's parameter register |
 | A two-way branch | A `jump_unless` plus two exclusive arms |
 
-Because the source and destination registers of an edge are disjoint in SSA, the argument copies never interfere — no parallel-move scheduling is required. The result is a flat `&[Op]` that an interpreter or a further pass can walk with no indirection.
+The arguments of one edge are a *parallel* copy — every argument is read before any parameter is written — and their sources and destinations can overlap: a loop back edge may pass the header's own parameters permuted (`jump H(b, a)` inside `H(a, b)`), shifted (`jump H(a2, a)`), or duplicated (`jump H(a, a)`). The backend sequentializes each edge's copies so no register is overwritten before it is read, breaking any cycle through one scratch register numbered just past the value registers (counted in `register_count` only when used). The sequence is minimal: one `move` per copy whose source and destination differ, plus one per cycle. The result is a flat `&[Op]` that an interpreter or a further pass can walk with no indirection.
+
+> Versions before `1.0.1` copied edge arguments in argument order and miscompiled back edges that permute their own parameters. Upgrade to `1.0.1` or later.
 
 ### A branch and a loop
 
@@ -181,7 +183,7 @@ match compile(&func) {
 
 ## Performance
 
-Performance is a hard constraint, not an afterthought (see [`REPS.md`](./REPS.md)). Lowering is a single linear pass over the function: each value maps to one op, each edge adds a small fixed number of moves and a jump, and the op vector is preallocated. The cost is linear in function size.
+Performance is a hard constraint, not an afterthought (see [`REPS.md`](./REPS.md)). Lowering is a single linear pass over the function: each value maps to one op, each edge adds one move per argument copy (plus one per cycle among them) and a jump, the edge scheduler works in a stack buffer for edges of up to 16 copies and in time linear in the copy count (with side tables allocated once per function) above that, and the op vector is preallocated. The cost is linear in function size.
 
 Latest local Criterion means (`cargo bench --bench bench --all-features`, Windows x86_64 / WSL2, Rust stable, release build). `compile` includes the up-front validation pass:
 
@@ -192,6 +194,9 @@ Latest local Criterion means (`cargo bench --bench bench --all-features`, Window
 | Straight-line arithmetic | 4096 instructions | ~31 µs |
 | Diamond branches | 512 branches | ~121 µs |
 | Countdown loop | header + back-edge | ~0.35 µs |
+| Rotating back edge | 131072-parameter cycle | ~3.9 ms* |
+
+\* Added in 1.0.1 and measured in a separate, slower Windows run than the rows above (in that run `loop_sum` measured ~0.96 µs), so compare it with the other rows only roughly. The same-machine before/after comparison for 1.0.1 is in [`docs/release/v1.0.1.md`](./docs/release/v1.0.1.md#performance).
 
 Numbers vary by CPU and environment; run the benches on your hardware for trends.
 
@@ -249,7 +254,7 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo bench --bench bench --all-features
 ```
 
-The integration suite in [`tests/workflow.rs`](./tests/workflow.rs) compiles and runs representative functions — `double`, `abs`, `max`, a countdown loop — through a reference interpreter and checks the results. The property tests generate random straight-line functions and check that compiling and running matches an independent evaluation, and that every emitted program is structurally sound.
+The integration suite in [`tests/workflow.rs`](./tests/workflow.rs) compiles and runs representative functions — `double`, `abs`, `max`, a countdown loop — through a reference interpreter and checks the results. The property tests generate random straight-line functions and check that compiling and running matches an independent evaluation, and that every emitted program is structurally sound. [`tests/parallel_moves.rs`](./tests/parallel_moves.rs) generates whole CFGs with loops whose back edges permute, rotate, duplicate, and mix their arguments, and checks each lowered program against a direct interpretation of the IR, against the program invariants, and for a minimal move count; it also pins the swap, rotation, shift, and duplication shapes by name.
 
 <br>
 

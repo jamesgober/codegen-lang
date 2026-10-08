@@ -4,7 +4,8 @@
 //! lowered, and run through the reference interpreter. The result is checked against an
 //! independent evaluation of the same graph, and the emitted program is checked for the
 //! invariants a backend must always uphold — every register in range, every jump
-//! resolved.
+//! resolved. Programs with control flow, loops, and back edges are covered by
+//! `tests/parallel_moves.rs`.
 
 mod support;
 
@@ -136,6 +137,8 @@ proptest! {
     fn compiled_program_is_structurally_sound(nodes in graph()) {
         let program = compile(&build(&nodes)).expect("a straight-line graph is valid");
         assert_structurally_sound(&program);
+        // The crate's own invariant check agrees with the independent one above.
+        prop_assert_eq!(program.__check_invariants(), Ok(()));
     }
 
     #[test]

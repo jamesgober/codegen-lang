@@ -17,7 +17,10 @@
 //! and result by register rather than by a position on a stack. Each basic block becomes
 //! a [`Label`] in a flat [op stream](Program::ops). A block's parameters are filled by
 //! [`Move`](Op::Move) ops emitted on the edges that target it — the bytecode's stand-in
-//! for an SSA phi node, which is how a value crosses a control-flow join. The input is
+//! for an SSA phi node, which is how a value crosses a control-flow join. An edge's
+//! arguments are one parallel copy, so its moves are ordered to never overwrite a
+//! register that is still to be read, with any cycle (a loop passing its own parameters
+//! back permuted) broken through one scratch register past the value registers. The input is
 //! checked with [`Function::validate`](ir_lang::Function::validate) before lowering, so
 //! a backend only ever sees well-formed SSA and the op stream it returns is faithful to
 //! the function it came from.
@@ -79,6 +82,7 @@ extern crate alloc;
 mod backend;
 mod error;
 mod lower;
+mod moves;
 mod program;
 
 pub use backend::{Backend, Bytecode, compile};

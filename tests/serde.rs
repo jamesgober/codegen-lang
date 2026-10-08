@@ -36,6 +36,36 @@ fn test_program_round_trips_through_json() {
     assert_eq!(restored, original);
     // The disassembly is identical, which exercises the deserialized labels and ops.
     assert_eq!(restored.to_string(), original.to_string());
+    // A faithful round trip keeps every structural invariant.
+    assert_eq!(restored.__check_invariants(), Ok(()));
+}
+
+#[test]
+fn test_tampered_program_deserializes_but_fails_the_invariant_check() {
+    // Deserialization does not validate (that would change accepted input in a patch
+    // release); the hidden invariant check is how a consumer catches a corrupt program.
+    let mut b = Builder::new("id", &[Type::Int], Type::Int);
+    let x = b.block_params(b.entry())[0];
+    b.ret(Some(x));
+    let original = compile(&b.finish()).expect("id is well-formed");
+    let json = serde_json::to_value(&original).expect("serialization succeeds");
+
+    let tamper = |edit: &dyn Fn(&mut serde_json::Value)| {
+        let mut value = json.clone();
+        edit(&mut value);
+        let program: Program = serde_json::from_value(value).expect("still deserializes");
+        program.__check_invariants()
+    };
+
+    // A register past the register count.
+    let err = tamper(&|v| v["registers"] = 0.into()).expect_err("out-of-range register");
+    assert!(err.contains("register"), "{err}");
+    // A label past the last op.
+    let err = tamper(&|v| v["labels"][0] = 7.into()).expect_err("label out of range");
+    assert!(err.contains("L0"), "{err}");
+    // No ops at all.
+    let err = tamper(&|v| v["ops"] = serde_json::json!([])).expect_err("empty program");
+    assert!(err.contains("no ops"), "{err}");
 }
 
 #[test]

@@ -80,6 +80,7 @@ impl From<ValidationError> for CodegenError {
 mod tests {
     use super::CodegenError;
     use crate::compile;
+    use alloc::string::ToString;
     use ir_lang::{Builder, Type, ValidationError};
 
     #[test]
