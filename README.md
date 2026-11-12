@@ -18,7 +18,7 @@
 
 <div align="left">
     <p>
-        codegen-lang is the CODE-tier crate: A backend abstraction that lowers IR to LLVM, Cranelift, or bytecode targets. Part of the -lang language-construction family; see _strategy/LANG_COLLECTION.md for the master plan.
+        codegen-lang is the CODE-tier crate: A backend abstraction that lowers IR to LLVM, Cranelift, or bytecode targets. Part of the -lang language-construction family.
     </p>
     <br>
     <hr>
