@@ -22,7 +22,7 @@ Public surface stable and frozen until 2.0.
 
 ## v1.0.1 - Patch: parallel-move fix (DONE, 2026-10-08)
 Fixes ISSUES **H01** and the patch-level parts of **M51** from
-`_lexersketch/ISSUES.md`. No public API change.
+the issue ledger. No public API change.
 
 Delivered:
 - **H01 (miscompile).** Block-argument moves are sequentialized as a parallel copy
